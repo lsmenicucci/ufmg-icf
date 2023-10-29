@@ -40,7 +40,7 @@ for presentation in presentations:
         meta = json.loads(meta_path.read_text())
         name = meta.get('title', name)
 
-    links[name] = f"/{presentation.parent.name}/index.html"
+    links[name] = f"{presentation.parent.name}/index.html"
 
 os.chdir(here / PRES_DEPLOY_DIR)
 
