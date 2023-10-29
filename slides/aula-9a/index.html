@@ -1,0 +1,801 @@
+<script
+    src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"
+    integrity="sha512-M7nHCiNUOwFt6Us3r8alutZLm9qMt4s9951uo8jqO4UwJ1hziseL6O3ndFyigx6+LREfZqnhHxYjKRJ8ZQ69DQ=="
+    crossorigin="anonymous"
+    referrerpolicy="no-referrer"
+></script>
+<script
+    src="https://cdnjs.cloudflare.com/ajax/libs/d3-annotation/2.5.1/d3-annotation.min.js"
+    integrity="sha512-iBAeBWWWFb8HqSBcrqcz98iIpuVH1la39dEYHtyQ/pGpeCQTQVvLJOWAuhv2Q7JSHp9k7hWA7sGxU3hHJe+tFg=="
+    crossorigin="anonymous"
+    referrerpolicy="no-referrer"
+></script>
+<script
+    src="https://cdnjs.cloudflare.com/ajax/libs/regression/2.0.1/regression.min.js"
+    integrity="sha512-0k6FXllQktdobw8Nc8KQN2WtZrOuxpMn7jC2RKCF6LR7EdOhhrg3H5cBPxhs3CFzQVlO6ni1B9SDLUPhBs0Alg=="
+    crossorigin="anonymous"
+    referrerpolicy="no-referrer"
+></script>
+
+<script>
+    const POINT_SIZE = 4.5
+
+    window.makePlot = (svg, xDomain, yDomain) => {
+        const [svgWidthStr, svgHeightStr] = [
+            svg.attr('width'),
+            svg.attr('height'),
+        ]
+        const [svgWidth, svgHeight] = [
+            parseInt(svgWidthStr),
+            parseInt(svgHeightStr),
+        ]
+
+        const margin = 40
+        const [width, height] = [svgWidth - 2 * margin, svgHeight - 2 * margin]
+        const g = svg
+            .append('g')
+            .attr('transform', `translate(${margin}, ${margin})`)
+
+        // Create scales
+        const xScale = d3.scaleLinear().domain(xDomain).range([0, width])
+        const yScale = d3.scaleLinear().domain(yDomain).range([height, 0])
+
+        // add spines
+        const xSpine = g
+            .append('g')
+            .attr('transform', `translate(0, ${height})`)
+            .call(d3.axisBottom(xScale))
+        const ySpine = g.append('g').call(d3.axisLeft(yScale))
+
+        // annotator func
+        const annotate = (text, x, y, dx, dy) => {
+            const offset = 10
+            const cfg = {
+                note: { title: text, wrap: 100 },
+                type: d3.annotationCalloutCurve,
+                connector: { end: 'arrow', points: 0 },
+                x: xScale(x) - offset,
+                y: yScale(y) - (offset * dy) / dx,
+                dx: dx,
+                dy: dy,
+            }
+            const makeAnnotation = d3.annotation().annotations([cfg])
+            return g
+                .append('g')
+                .attr('class', 'annotation-group')
+                .call(makeAnnotation)
+                .style('font-size', '1rem')
+                .attr('opacity', 0)
+                .transition()
+                .duration(500)
+                .attr('opacity', 1)
+        }
+
+        return { plot: g, xScale, yScale, xSpine, ySpine, annotate }
+    }
+
+    window.addNoise = (points, vari = 0.1) => {
+        const normal = d3.randomNormal(0, vari)
+
+        return points.map(({ x, y }) => {
+            yNoise = y + normal()
+            return { x, y: yNoise }
+        })
+    }
+
+    window.reveal = (el) => {
+        el.style.opacity = 1
+    }
+</script>
+
+<style>
+    .plot {
+        align-self: center;
+        justify-self: center;
+    }
+    .plot .tick {
+        font-size: 1rem;
+    }
+</style>
+
+<presentation-slide class="title">
+    <h1>Interpolação Polinomial</h1>
+    <i> Utilizando Polinomios de Lagrange </i>
+</presentation-slide>
+
+<presentation-slide>
+    <div class="flex h-1/2">
+        <svg class="plot" width="400" height="400"></svg>
+
+        <div>
+            <h3>Contexto</h3>
+            <ul>
+                <li>Temos $N$ pares de pontos</li>
+                <li>
+                    Não sabemos a relação entre eles <br />
+                    $$y_i = f(x_i) ? $$
+                </li>
+                <li>Queremos estimar $f(x)$ para um $x$ que não conhecemos</li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="flex nowrap w-100 h-1/2">
+        <div class="m-4">
+            <h3>Exemplos</h3>
+            <ul>
+                <li>Medidas de um experimento</li>
+                <li>Resultados de simulações numéricas</li>
+                <li>Preços de ações</li>
+                <li>Suavização de imagens</li>
+            </ul>
+        </div>
+        <svg
+            data-label="grid"
+            class="plot m-auto"
+            width="400"
+            height="400"
+        ></svg>
+    </div>
+
+    <script>
+        ;(() => {
+            const slide = document.currentScript.parentElement
+
+            slide.addStep(() => {
+                const svg = d3.select(slide).select('svg')
+
+                const f = (x) => Math.exp(x / 2)
+                let data = d3.range(1, 9).map((x) => ({ x, y: f(x) }))
+                data = window.addNoise(data, 1)
+
+                const { plot, xScale, yScale, annotate } = window.makePlot(
+                    svg,
+                    [0, 10],
+                    [0, 100]
+                )
+
+                const curve = d3
+                    .line()
+                    .x((d) => xScale(d.x))
+                    .y((d) => yScale(d.y))
+                    .curve(d3.curveNatural)
+
+                const curveData = curve(data)
+
+                plot.selectAll('circle')
+                    .data(data)
+                    .enter()
+                    .append('circle')
+                    .attr('cx', (d) => xScale(d.x))
+                    .attr('cy', (d) => yScale(d.y))
+                    .attr('r', 0)
+                    .transition()
+                    .delay((d, i) => i * 50)
+                    .duration(500)
+                    .attr('r', POINT_SIZE)
+
+                // draw extrapolated point
+                const intX = Math.max(...data.map((d) => d.x)) + 0.5
+                const intY = f(intX)
+                plot.append('circle')
+                    .attr('cx', xScale(intX))
+                    .attr('cy', yScale(intY))
+                    .attr('r', 0)
+                    .attr('fill', 'red')
+                    .transition()
+                    .delay(500)
+                    .duration(500)
+                    .attr('r', POINT_SIZE)
+
+                annotate('Extrapolado', intX, intY, -10, 0).delay(1000)
+
+                const line = plot
+                    .append('path')
+                    .attr('d', curve(data))
+                    .attr('fill', 'none')
+                    .attr('stroke', 'grey')
+                    .attr('opacity', 0.5)
+                    .attr('stroke-width', 2)
+                    .attr('stroke-dasharray', curveData.length)
+                    .attr('stroke-dashoffset', curveData.length)
+                    .transition()
+                    .duration(500)
+                    .attr('stroke-dashoffset', 0)
+
+                // plot grid
+                const grid = d3.select(slide).select('[data-label="grid"]')
+
+                // get scale
+                const gxScale = d3
+                    .scaleLinear()
+                    .domain([0, 10])
+                    .range([0, 400 + 15])
+                const gyScale = d3
+                    .scaleLinear()
+                    .domain([0, 10])
+                    .range([400 + 15, 0])
+
+                // plot grid lines
+                const nTicks = 9
+                const hGrid = grid
+                    .selectAll('line.horizontalGrid')
+                    .data(gyScale.ticks(nTicks))
+                    .enter()
+                    .append('line')
+                    .attr('class', 'horizontalGrid')
+                    .attr('x1', 0)
+                    .attr('x2', 400)
+                    .attr('y1', (d) => 30 + gyScale(d))
+                    .attr('y2', (d) => 30 + gyScale(d))
+                    .attr('stroke', 'grey')
+
+                const vGrid = grid
+                    .selectAll('line.verticalGrid')
+                    .data(gxScale.ticks(nTicks))
+                    .enter()
+                    .append('line')
+                    .attr('class', 'verticalGrid')
+                    .attr('y1', 0)
+                    .attr('y2', 400)
+                    .attr('x1', (d) => 30 + gxScale(d))
+                    .attr('x2', (d) => 30 + gxScale(d))
+                    .attr('stroke', 'grey')
+
+                const gridPoints = gyScale
+                    .ticks(nTicks)
+                    .map((y) => gxScale.ticks(nTicks).map((x) => ({ x, y })))
+                    .flat()
+
+                const points = grid
+                    .selectAll('circle')
+                    .data(gridPoints)
+                    .enter()
+                    .append('circle')
+                    .attr('cx', (d) => 30 + gxScale(d.x))
+                    .attr('cy', (d) => 30 + gyScale(d.y))
+                    .attr('r', POINT_SIZE)
+
+                const walk = (el) => {
+                    const randX = gxScale(Math.random() * 10)
+                    const randY = gyScale(Math.random() * 10)
+
+                    el.transition()
+                        .duration(500)
+                        .delay(1000)
+                        .attr('cx', randX)
+                        .attr('cy', randY)
+                        .on('end', function () {
+                            walk(d3.select(this))
+                        })
+                }
+
+                const intPoint = grid
+                    .append('circle')
+                    .attr('r', POINT_SIZE)
+                    .attr('fill', 'red')
+                walk(intPoint)
+            }, true)
+        })()
+    </script>
+</presentation-slide>
+
+<presentation-slide class="flex flex-col justify-center">
+    <h1 class="m-auto">Atenção!</h1>
+
+    <div class="flex align-center justify-center gap-4 my-auto">
+        <div class="flex flex-col items-center">
+            <svg
+                class="plot"
+                data-label="interpolation"
+                width="400"
+                height="400"
+            ></svg>
+            <h2>Interpolação</h2>
+        </div>
+        <div class="flex flex-col items-center">
+            <svg
+                class="plot"
+                data-label="regression"
+                width="400"
+                height="400"
+            ></svg>
+            <h2>Regressão</h2>
+        </div>
+    </div>
+
+    <script>
+        ;(() => {
+            const slide = document.currentScript.parentElement
+
+            const intSvg = d3
+                .select(slide)
+                .select('[data-label="interpolation"]')
+            const regSvg = d3.select(slide).select('[data-label="regression"]')
+
+            const {
+                plot: intPlot,
+                xScale: intXScale,
+                yScale: intYScale,
+            } = window.makePlot(intSvg, [0, 10], [0, 100])
+
+            const {
+                plot: regPlot,
+                xScale: regXScale,
+                yScale: regYScale,
+            } = window.makePlot(regSvg, [0, 10], [0, 100])
+
+            const f = (x) => 2 * x ** 2 - 3 * x + 5
+            // interpolation
+            let data = d3.range(2, 10).map((x) => ({ x, y: f(x) }))
+            data = window.addNoise(data, 7)
+
+            const curve = d3
+                .line()
+                .x((d) => intXScale(d.x))
+                .y((d) => intYScale(d.y))
+                .curve(d3.curveNatural)
+
+            const curveData = curve(data)
+
+            slide.addStep(() => {
+                intPlot
+                    .selectAll('circle')
+                    .data(data)
+                    .enter()
+                    .append('circle')
+                    .attr('cx', (d) => intXScale(d.x))
+                    .attr('cy', (d) => intYScale(d.y))
+                    .attr('r', 0)
+                    .transition()
+                    .delay((d, i) => i * 50)
+                    .duration(500)
+                    .attr('r', POINT_SIZE)
+
+                intPlot
+                    .append('path')
+                    .attr('d', curve(data))
+                    .attr('fill', 'none')
+                    .attr('stroke', 'grey')
+                    .attr('opacity', 0.7)
+                    .attr('stroke-width', 2)
+
+                // regression
+                const regData = data.map(({ x, y }) => [x, y])
+
+                const reg = regression.polynomial(regData, { order: 2 }).points
+                const regPoints = reg.map(([x, y]) => ({ x, y }))
+
+                regPlot
+                    .selectAll('circle')
+                    .data(data)
+                    .enter()
+                    .append('circle')
+                    .attr('cx', (d) => regXScale(d.x))
+                    .attr('cy', (d) => regYScale(d.y))
+                    .attr('r', 0)
+                    .transition()
+                    .delay((d, i) => i * 50)
+                    .duration(500)
+                    .attr('r', POINT_SIZE)
+
+                const regCurve = d3
+                    .line()
+                    .x((d) => regXScale(d[0]))
+                    .y((d) => regYScale(d[1]))
+                    .curve(d3.curveNatural)
+
+                regPlot
+                    .append('path')
+                    .attr('d', regCurve(reg))
+                    .attr('fill', 'none')
+                    .attr('stroke', 'grey')
+                    .attr('opacity', 0.7)
+                    .attr('stroke-width', 2)
+            }, true)
+        })()
+    </script>
+</presentation-slide>
+
+<presentation-slide>
+    <h3>Quem passa por $(x_i, y_i)$?</h3>
+
+    <svg class="plot" width="600" height="600"></svg>
+    <p data-label="msg-1" class="m-auto opacity-0">
+        Precisamos escolher uma forma para $f(x)$
+    </p>
+    <script>
+        ;(() => {
+            const slide = document.currentScript.parentElement
+            const svg = d3.select(slide).select('svg')
+
+            const f = (x) => Math.sin(x) * 10 + 50
+            let intData = d3.range(1, 10).map((x) => ({ x, y: f(x) }))
+            intData = window.addNoise(intData, 1)
+
+            const { plot, xScale, yScale } = window.makePlot(
+                svg,
+                [0, 10],
+                [0, 100]
+            )
+
+            const curve = d3
+                .line()
+                .x((d) => xScale(d.x))
+                .y((d) => yScale(d.y))
+                .curve(d3.curveNatural)
+
+            const curveData = curve(intData)
+
+            slide.addStep(() => {
+                plot.selectAll('circle')
+                    .data(intData)
+                    .enter()
+                    .append('circle')
+                    .attr('cx', (d) => xScale(d.x))
+                    .attr('cy', (d) => yScale(d.y))
+                    .attr('r', 0)
+                    .transition()
+                    .delay((d, i) => i * 50)
+                    .duration(500)
+                    .attr('r', POINT_SIZE)
+
+                let curvePath = null
+                const generateCurve = () => {
+                    let newData = d3
+                        .range(1, 10, 0.5)
+                        .map((x) => ({ x, y: f(x) }))
+
+                    newData = window.addNoise(newData, 4)
+
+                    newData = newData.map((d) => {
+                        if (d.x == Math.floor(d.x)) {
+                            return intData.find(({ x }) => d.x == x)
+                        } else {
+                            return d
+                        }
+                    })
+
+                    // plot interpolating curve
+                    const curve = d3
+                        .line()
+                        .x((d) => xScale(d.x))
+                        .y((d) => yScale(d.y))
+                        .curve(d3.curveNatural)
+
+                    if (!curvePath) {
+                        curvePath = plot
+                            .append('path')
+                            .attr('d', curve(newData))
+                            .attr('fill', 'none')
+                            .attr('stroke', 'grey')
+                            .attr('opacity', 0.7)
+                            .attr('stroke-width', 2)
+                    }
+
+                    curvePath
+                        .transition()
+                        .duration(500)
+                        .attr('d', curve(newData))
+                        .on('end', generateCurve)
+                }
+                generateCurve()
+            }, true)
+
+            slide.addStep(() => {
+                window.reveal(slide.querySelector('p'))
+            })
+        })()
+    </script>
+</presentation-slide>
+
+<presentation-slide class="flex flex-column justify-center gap-4">
+    <h3>E se $f$ for um polinomio?</h3>
+    <div class="w-full flex justify-center my-4">
+        $$ f(x) = a_0 + a_1 x + a_2 x^2 + \ldots + a_N x^N $$
+    </div>
+
+    <div class="mt-8" data-label="poly-desc" style="opacity: 0">
+        Propriedades de um polinomio $P$:
+        <ul>
+            <li>Ordem de $P$ é a maior potência de $x$</li>
+            <li>Se $P$ tem ordem $N$, então $P$ tem $N+1$ coeficientes</li>
+            <li>$N + 1$ pontos definem um polinomio de ordem $N$</li>
+        </ul>
+    </div>
+
+    <div
+        data-label="poly-plots"
+        class="flex justify-center gap-4"
+        style="opacity: 0"
+    >
+        <svg class="plot" width="400" height="400"></svg>
+        <svg class="plot" width="400" height="400"></svg>
+        <svg class="plot" width="400" height="400"></svg>
+    </div>
+
+    <script>
+        ;(() => {
+            const slide = document.currentScript.parentElement
+            const desc = slide.querySelector('[data-label="poly-desc"]')
+            const plotsSec = slide.querySelector('[data-label="poly-plots"]')
+
+            slide.addStep(() => {
+                window.reveal(desc)
+            })
+
+            slide.addStep(() => {
+                window.reveal(plotsSec)
+
+                const svgs = [...plotsSec.querySelectorAll('svg')]
+                svgs.forEach((svg, k) => {
+                    let delta = 2 / (k + 2)
+                    let data = d3
+                        .range(-0.75, 1.25, delta)
+                        .map((x) => ({ x, y: x ** (k + 1) }))
+                    console.log(data)
+
+                    const { plot, xScale, yScale } = window.makePlot(
+                        d3.select(svg),
+                        [-1, 1],
+                        [-1, 1]
+                    )
+
+                    // polynomial regression
+                    const regData = data.map(({ x, y }) => [x, y])
+                    const reg = regression.polynomial(regData, { order: k + 1 })
+                    let regPoints = [
+                        reg.predict(-1),
+                        ...reg.points,
+                        reg.predict(1 + delta),
+                    ]
+                    regPoints = regPoints.map(([x, y]) => ({ x, y }))
+
+                    const curve = d3
+                        .line()
+                        .x((d) => xScale(d.x))
+                        .y((d) => yScale(d.y))
+                        .curve(d3.curveNatural)
+
+                    const curveData = curve(regPoints)
+
+                    plot.append('path')
+                        .attr('d', curve(regPoints))
+                        .attr('fill', 'none')
+                        .attr('stroke', 'grey')
+                        .attr('opacity', 0.7)
+                        .attr('stroke-width', 2)
+
+                    plot.selectAll('circle')
+                        .data(data)
+                        .enter()
+                        .append('circle')
+                        .attr('cx', (d) => xScale(d.x))
+                        .attr('cy', (d) => yScale(d.y))
+                        .attr('r', 0)
+                        .transition()
+                        .delay((d, i) => i * 50)
+                        .duration(500)
+                        .attr('r', POINT_SIZE)
+                })
+            })
+        })()
+    </script>
+</presentation-slide>
+
+<presentation-slide class="title">
+    <h1>Polinomio de Lagrange</h1>
+</presentation-slide>
+
+<presentation-slide class="flex flex-col justify-around">
+    <p class="mb-8">
+        Polinomio de ordem $N$ que passa por $N$ pontos: 
+    </p>
+    <p class="mb-2">
+
+        \[ \begin{align*} P(x)
+        =
+        &\frac{(x-x_2)(x-x_3)\ldots(x-x_N)}{(x_1-x_2)(x_1-x_3)\ldots(x_1-x_N)}y_1
+        \; + \\
+        &\frac{(x-x_1)(x-x_3)\ldots(x-x_N)}{(x_2-x_1)(x_2-x_3)\ldots(x_2-x_N)}y_2
+        \; + \\
+        &\frac{(x-x_1)(x-x_2)\ldots(x-x_N)}{(x_3-x_1)(x_3-x_2)\ldots(x_3-x_N)}y_3
+        \; + \; \ldots \end{align*} \]
+    </p>
+
+    <p>
+        Substituindo $x = x_k$, verificamos que: \[ \begin{align*} P(x_1) &= y_1
+        \\ P(x_2) &= y_2 \\ P(x_3) &= y_3 \\ &\ldots \end{align*} \]
+    </p>
+</presentation-slide>
+
+<presentation-slide class="title">
+    <h1>Algoritmo de Neaville</h1>
+</presentation-slide>
+
+<presentation-slide class="flex flex-col justify-around">
+    <div class="flex w-full justify-center gap-4 mb-4">
+        <div class="flex flex-col items-center">
+            \( P_{j, j+k} \)
+            <svg class="plot" width="400" height="300" data-label="pol-1"></svg>
+        </div>
+        <div class="flex flex-col items-center">
+            \( P_{j+1, j+k+1} \)
+            <svg class="plot" width="400" height="300" data-label="pol-2"></svg>
+        </div>
+    </div>
+
+    <div class="flex flex-col w-full justify-center">
+        \[ P_{j, j + k + 1} = \frac{(x - x_{j + k + 1})P_{j, j + k} + (x -
+        x_j)P_{j + 1, j + k + 1}}{x_j - x_{j + k + 1}} \]
+        <svg class="plot" width="800" height="300" data-label="pol-3"></svg>
+    </div>
+
+    <script>
+        const slide = document.currentScript.parentElement
+
+        const svg1 = d3.select(slide).select('[data-label="pol-1"]')
+        const svg2 = d3.select(slide).select('[data-label="pol-2"]')
+        const svg3 = d3.select(slide).select('[data-label="pol-3"]')
+
+        const {
+            plot: plot1,
+            xScale: xScale1,
+            yScale: yScale1,
+            annotate: annotate1,
+        } = window.makePlot(svg1, [0, 10], [0, 100])
+        const {
+            plot: plot2,
+            xScale: xScale2,
+            yScale: yScale2,
+            annotate: annotate2,
+        } = window.makePlot(svg2, [0, 10], [0, 100])
+        const {
+            plot: plot3,
+            xScale: xScale3,
+            yScale: yScale3,
+            annotate: annotate3,
+        } = window.makePlot(svg3, [0, 10], [0, 100])
+
+        const f = (x) => Math.sin(x) * 10 + 50
+        const data = d3.range(1, 10).map((x) => ({ x, y: f(x) }))
+
+        // exclude last and first points for each dataset
+        const data1 = data.slice(0, -1)
+        const data2 = data.slice(1)
+        const commonData = data.slice(1, -1)
+
+        slide.addStep(() => {
+            // plot both datasets
+            plot1
+                .selectAll('circle')
+                .data(commonData)
+                .enter()
+                .append('circle')
+                .attr('cx', (d) => xScale1(d.x))
+                .attr('cy', (d) => yScale1(d.y))
+                .attr('r', 0)
+                .transition()
+                .delay((d, i) => i * 50)
+                .duration(500)
+                .attr('r', POINT_SIZE)
+
+            // enumerate points
+            plot1
+                .selectAll('text')
+                .data(commonData)
+                .enter()
+                .append('text')
+                .attr('x', (d) => xScale1(d.x))
+                .attr('y', (d) => yScale1(d.y))
+                .attr('dx', 5)
+                .attr('dy', -5)
+                .text((d, i) => 'teste')
+
+            // annotate extra point
+            let extraPoint = data[0]
+            plot1
+                .append('circle')
+                .attr('cx', xScale1(extraPoint.x))
+                .attr('cy', yScale1(extraPoint.y))
+                .attr('r', 0)
+                .attr('fill', 'red')
+                .transition()
+                .delay(500)
+                .duration(500)
+                .attr('r', POINT_SIZE)
+
+            plot2
+                .selectAll('circle')
+                .data(commonData)
+                .enter()
+                .append('circle')
+                .attr('cx', (d) => xScale2(d.x))
+                .attr('cy', (d) => yScale2(d.y))
+                .attr('r', 0)
+                .transition()
+                .delay((d, i) => i * 50)
+                .duration(500)
+                .attr('r', POINT_SIZE)
+
+            // annotate extra point
+            extraPoint = data[data.length - 1]
+            plot2
+                .append('circle')
+                .attr('cx', xScale1(extraPoint.x))
+                .attr('cy', yScale1(extraPoint.y))
+                .attr('r', 0)
+                .attr('fill', 'red')
+                .transition()
+                .delay(500)
+                .duration(500)
+                .attr('r', POINT_SIZE)
+
+            // plot both datasets
+            const extraPoints = [data[0], data[data.length - 1]]
+            const isExtrap = (d) => extraPoints.some((p) => p.x == d.x)
+
+            plot3
+                .selectAll('circle')
+                .data(data)
+                .enter()
+                .append('circle')
+                .attr('cx', (d) => xScale3(d.x))
+                .attr('cy', (d) => yScale3(d.y))
+                .attr('r', 0)
+                .attr('fill', (d) => (isExtrap(d) ? 'red' : 'black'))
+                .transition()
+                .delay((d, i) => i * 50)
+                .duration(500)
+                .attr('r', POINT_SIZE)
+        }, true)
+    </script>
+</presentation-slide>
+
+<presentation-slide class="flex flex-col justify-between">
+    <h3>Implementação</h3>
+
+    <div class="flex gap-8 justify-center">
+        <div class="flex flex-col">\( P_1 \) \( P_2 \) \( P_3 \) \( P_4 \)</div>
+        <div class="flex flex-col justify-center">
+            \( P_{12} \) \( P_{23} \) \( P_{34} \)
+        </div>
+        <div class="flex flex-col justify-center">
+            \( P_{123} \) \( P_{234} \)
+        </div>
+        <div class="flex flex-col justify-center">\( P_{1234} \)</div>
+    </div>
+
+    <pre
+        class="mx-auto mt-4"
+        style="font-size: 18px"
+    ><code class="language-python">def intepolate_lagr(xb, yb, x):
+    plist = yb.copy()
+
+    order = 1
+    
+    while len(plist) > 1:
+        new_plist = []
+        
+        for i in range(len(plist) - 1):
+            p = (x - xb[order + i]) * plist[i] + (xb[i] - x) * plist[i + 1]
+            p /= (xb[i] - xb[i + order])
+
+            new_plist.append(p) 
+
+        plist = new_plist
+        order += 1
+
+    return plist[0]
+    </code></pre>
+
+    <script>
+        ;(() => {
+            const slide = document.currentScript.parentElement
+            slide.addStep(() => {
+                console.log('ok')
+                hljs.highlightBlock(slide.querySelector('code'))
+            }, true)
+        })()
+    </script>
+</presentation-slide>

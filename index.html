@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+        <title>HTML 5 Boilerplate</title>
+        <link rel="stylesheet" href="style.css" />
+        <script src="https://cdn.tailwindcss.com"></script>
+        <script>
+            const linksUrl = '/links.json'
+
+            const createLink = (name, link) => {
+                const template = document.querySelector('#link-template')
+                const clone = template.content.cloneNode(true).firstElementChild
+
+                const linkTitle = clone.querySelector('[data-link-title]')
+                linkTitle.textContent = name
+
+                clone.addEventListener('click', () => {
+                    // redirect to link
+                    window.location.href = link
+                })
+
+                return clone
+            }
+
+            const links = fetch(linksUrl)
+                .then((response) => response.json())
+                .then((data) => {
+                    const main = document.querySelector('[data-slides]')
+                    Object.entries(data).forEach(([linkName, link]) => {
+                        const linkElement = createLink(linkName, link)
+                        console.log(linkElement)
+                        main.appendChild(linkElement)
+                    })
+                })
+        </script>
+    </head>
+    <template id="link-template">
+        <div
+            class="max-w-sm rounded overflow-hidden shadow-lg hover:shadow-2xl cursor-pointer"
+        >
+            <div class="px-6 py-4">
+                <div class="font-bold text-xl mb-2" data-link-title></div>
+            </div>
+        </div>
+    </template>
+    <body>
+        <main class="flex flex-col m-10 w-full h-full">
+            <h1 class="text-4xl font-bold mb-4">Apresentações</h1>
+            <section data-slides></section>
+        </main>
+    </body>
+</html>
