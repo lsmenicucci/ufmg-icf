@@ -39,6 +39,8 @@
         <script>
             // resizing
             const DEFAULT_VH_MARGIN = 0.025
+            let ORIGINAL_WIDTH = 1920
+            let ORIGINAL_HEIGHT = 900
 
             // slide custom element
             class Slide extends HTMLElement {
@@ -110,30 +112,34 @@
                 }
 
                 _resize() {
-                    let width = window.innerWidth
-                    let height = window.innerHeight
+                    let originalHeight =
+                        ORIGINAL_HEIGHT * (1 - DEFAULT_VH_MARGIN * 2)
+                    let originalWidth = originalHeight * (4 / 3)
 
-                    // subtract margin
-                    width -= height * DEFAULT_VH_MARGIN * 2
-                    height -= height * DEFAULT_VH_MARGIN * 2
+                    let scale = 1
 
-                    let ratio = (3 / 4) * (width / height)
+                    if (window.innerWidth * (3 / 4) >= window.innerHeight) {
+                        const h = window.innerHeight * (1 - DEFAULT_VH_MARGIN * 2)
+                        const w = h * (4 / 3)
+                        const my = DEFAULT_VH_MARGIN * window.innerHeight
+                        const mx = (window.innerWidth - w) / 2
 
-                    const setScale = (scale) => {
-                        this.style.transform = `scale(${scale})`
+                        this.style.margin = `${my}px ${mx}px`
+                        scale = h / ORIGINAL_HEIGHT
+                    }else{
+                        const w = window.innerWidth * (1 - DEFAULT_VH_MARGIN * 2)
+                        const h = w * (3 / 4)
+                        const mx = DEFAULT_VH_MARGIN * window.innerWidth
+                        const my = (window.innerHeight - h) / 2
+
+                        this.style.margin = `${my}px ${mx}px`
+                        scale = h / ORIGINAL_HEIGHT
                     }
 
-                    if (ratio < 1) {
-                        setScale(ratio)
+                    this.style.height = `${originalHeight}px`
+                    this.style.width = `${originalWidth}px`
+                    this.style.transform = `scale(${scale})`
 
-                        const margin = window.innerHeight * DEFAULT_VH_MARGIN
-                    } else {
-                        setScale(1)
-
-                        const margin = window.innerHeight * DEFAULT_VH_MARGIN
-                        this.style.marginTop = `${margin}px`
-                        this.style.marginBottom = `${margin}px`
-                    }
                 }
 
                 reset() {
@@ -148,15 +154,15 @@
         <link href="https://unpkg.com/tailwindcss@^2/dist/tailwind.min.css" rel="stylesheet">
         
       <script type="module" crossorigin>
-(function(){const e=document.createElement("link").relList;if(e&&e.supports&&e.supports("modulepreload"))return;for(const t of document.querySelectorAll('link[rel="modulepreload"]'))i(t);new MutationObserver(t=>{for(const n of t)if(n.type==="childList")for(const c of n.addedNodes)c.tagName==="LINK"&&c.rel==="modulepreload"&&i(c)}).observe(document,{childList:!0,subtree:!0});function s(t){const n={};return t.integrity&&(n.integrity=t.integrity),t.referrerPolicy&&(n.referrerPolicy=t.referrerPolicy),t.crossOrigin==="use-credentials"?n.credentials="include":t.crossOrigin==="anonymous"?n.credentials="omit":n.credentials="same-origin",n}function i(t){if(t.ep)return;t.ep=!0;const n=s(t);fetch(t.href,n)}})();if(window.location.hostname==="localhost"){const e=new WebSocket(`ws://${window.location.host}/ws`);e.addEventListener("message",s=>{if(s.data==="reload"){const i={currentSlide:o};localStorage.setItem("state",JSON.stringify(i)),window.location.reload()}}),e.addEventListener("open",()=>{const s=localStorage.getItem("state");s&&(o=JSON.parse(s).currentSlide,o=Math.min(o,r.length-1),l(o))})}const r=[...document.querySelectorAll("presentation-slide")];let o=0;const u=()=>{const e={currentSlide:o,currentSlideStep:r[o].currentStep};localStorage.setItem("state",JSON.stringify(e))},a=()=>{if(r[o].hasNextStep()){r[o].nextStep();return}o<r.length-1&&(r[o+1].reset(),l(o+1))},d=()=>{o>0&&(r[o].reset(),l(o-1))};function l(e){r[e].scrollIntoView({block:"center",inline:"nearest"}),o=e,u()}document.addEventListener("keydown",e=>{e.key==="ArrowUp"||e.key==="ArrowLeft"?(e.preventDefault(),d()):(e.key==="ArrowDown"||e.key==="ArrowRight")&&(e.preventDefault(),a()),e.key==="e"&&(e.preventDefault(),p())});const f=.3;document.addEventListener("touchstart",e=>{const i=e.touches[0].clientX,t=window.innerWidth;i<t*f?d():a()});const p=()=>{};document.addEventListener("DOMContentLoaded",()=>{document.body.style.opacity=1});
+(function(){const e=document.createElement("link").relList;if(e&&e.supports&&e.supports("modulepreload"))return;for(const t of document.querySelectorAll('link[rel="modulepreload"]'))i(t);new MutationObserver(t=>{for(const n of t)if(n.type==="childList")for(const c of n.addedNodes)c.tagName==="LINK"&&c.rel==="modulepreload"&&i(c)}).observe(document,{childList:!0,subtree:!0});function s(t){const n={};return t.integrity&&(n.integrity=t.integrity),t.referrerPolicy&&(n.referrerPolicy=t.referrerPolicy),t.crossOrigin==="use-credentials"?n.credentials="include":t.crossOrigin==="anonymous"?n.credentials="omit":n.credentials="same-origin",n}function i(t){if(t.ep)return;t.ep=!0;const n=s(t);fetch(t.href,n)}})();if(window.location.hostname==="localhost"){const e=new WebSocket(`ws://${window.location.host}/ws`);e.addEventListener("message",s=>{if(s.data==="reload"){const i={currentSlide:o};localStorage.setItem("state",JSON.stringify(i)),window.location.reload()}}),e.addEventListener("open",()=>{const s=localStorage.getItem("state");s&&(o=JSON.parse(s).currentSlide,o=Math.min(o,r.length-1),a(o))})}const r=[...document.querySelectorAll("presentation-slide")];let o=0;const f=()=>{const e={currentSlide:o,currentSlideStep:r[o].currentStep};localStorage.setItem("state",JSON.stringify(e))},d=()=>{if(r[o].hasNextStep()){r[o].nextStep();return}o<r.length-1&&(r[o+1].reset(),a(o+1))},u=()=>{o>0&&(r[o].reset(),a(o-1))};function a(e){r[e].scrollIntoView({block:"center",inline:"nearest"}),o=e,f()}let l=null;window.addEventListener("resize",()=>{l&&clearTimeout(l),l=setTimeout(()=>{r[o].scrollIntoView({block:"center",inline:"nearest"})},501)});document.addEventListener("keydown",e=>{e.key==="ArrowUp"||e.key==="ArrowLeft"?(e.preventDefault(),u()):(e.key==="ArrowDown"||e.key==="ArrowRight")&&(e.preventDefault(),d()),e.key==="e"&&(e.preventDefault(),m())});const p=.3;document.addEventListener("touchstart",e=>{const i=e.touches[0].clientX,t=window.innerWidth;i<t*p?u():d()});const m=()=>{};document.addEventListener("DOMContentLoaded",()=>{document.body.style.opacity=1});
 
 </script>
       <style>
-@import"https://fonts.googleapis.com/css2?family=Arvo:ital,wght@0,400;0,700;1,400;1,700&family=Inclusive+Sans&family=Mooli&family=Roboto:wght@300;400;700&display=swap";body{display:flex;flex-direction:column;align-items:center;min-height:100vh;min-width:100vw;margin:0;overflow:hidden;background-color:#000;font-family:Inclusive Sans,sans-serif;color:#272d2d;font-size:28px;transition:opacity .5s ease-in-out}h1{font-weight:700;font-size:2em;margin:.5em -.5em}h2{font-weight:400;font-size:1.5em;margin:.5em 0}h3{font-weight:400;font-size:1.2em;margin:.5em 0}h4,h5,h6{font-weight:400;font-size:1em;margin:.5em 0}table{border-collapse:collapse;width:100%}table,th,td{border:1px solid #272d2d}th,td{padding:.25em;text-align:center;font-size:.7em}th{background-color:#272d2d;color:#fff}presentation-slide{background-color:#f5f5f5;height:95vh;width:calc((100vh - 5vh) * 4 / 3);box-sizing:border-box;display:flex;flex-direction:column;padding:2.5vh calc(2.5vh * 4 / 3);overflow:hidden;transition:transform .5s ease-in-out}presentation-slide img{align-self:center}ul{list-style-type:disc;padding-left:2em}ul li{margin-left:1em;margin-bottom:.25em;list-style-type:disc}ul.todo{list-style-type:none;padding-left:0}ul.todo li{margin:.5em 0}ul.todo li:before{content:"□";margin-right:.5em}ul.todo li.done:before{content:"■"}presentation-slide.title{padding:5%;display:flex;flex-direction:column;justify-content:center;align-items:flex-start}presentation-slide.title h1{font-size:2em;text-align:center;margin:.5em 0}presentation-slide.title .authors{text-align:center}
+@import"https://fonts.googleapis.com/css2?family=Arvo:ital,wght@0,400;0,700;1,400;1,700&family=Inclusive+Sans&family=Mooli&family=Roboto:wght@300;400;700&display=swap";body{display:flex;flex-direction:column;align-items:center;min-height:100vh;min-width:100vw;margin:0;overflow:hidden;background-color:#000;font-family:Inclusive Sans,sans-serif;color:#272d2d;font-size:28px;transition:opacity .5s ease-in-out}h1{font-weight:700;font-size:2em;margin:.5em -.5em}h2{font-weight:400;font-size:1.5em;margin:.5em 0}h3{font-weight:400;font-size:1.2em;margin:.5em 0}h4,h5,h6{font-weight:400;font-size:1em;margin:.5em 0}table{border-collapse:collapse;width:100%}table,th,td{border:1px solid #272d2d}th,td{padding:.25em;text-align:center;font-size:.7em}th{background-color:#272d2d;color:#fff}presentation-slide{background-color:#f5f5f5;box-sizing:border-box;margin:auto;display:flex;flex-direction:column;padding:2.5vh calc(2.5vh * 4 / 3);overflow:hidden;transform-origin:center;transition:transform .5s ease-in-out}presentation-slide img{align-self:center}ul{list-style-type:disc;padding-left:2em}ul li{margin-left:1em;margin-bottom:.25em;list-style-type:disc}ul.todo{list-style-type:none;padding-left:0}ul.todo li{margin:.5em 0}ul.todo li:before{content:"□";margin-right:.5em}ul.todo li.done:before{content:"■"}presentation-slide.title{padding:5%;display:flex;flex-direction:column;justify-content:center;align-items:flex-start}presentation-slide.title h1{font-size:2em;text-align:center;margin:.5em 0}presentation-slide.title .authors{text-align:center}
 
 </style>
     </head>
-    <body style="opacity: 0;">
+    <body style="opacity: 0">
         <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js" integrity="sha512-M7nHCiNUOwFt6Us3r8alutZLm9qMt4s9951uo8jqO4UwJ1hziseL6O3ndFyigx6+LREfZqnhHxYjKRJ8ZQ69DQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/d3-annotation/2.5.1/d3-annotation.min.js" integrity="sha512-iBAeBWWWFb8HqSBcrqcz98iIpuVH1la39dEYHtyQ/pGpeCQTQVvLJOWAuhv2Q7JSHp9k7hWA7sGxU3hHJe+tFg==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/regression/2.0.1/regression.min.js" integrity="sha512-0k6FXllQktdobw8Nc8KQN2WtZrOuxpMn7jC2RKCF6LR7EdOhhrg3H5cBPxhs3CFzQVlO6ni1B9SDLUPhBs0Alg==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
