@@ -1,6 +1,6 @@
 <!DOCTYPE html><html lang="en"><head>
         <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <meta name="viewport" content="width=device-width">
         <meta http-equiv="X-UA-Compatible" content="ie=edge">
         <title>Presentation</title>
 
@@ -118,19 +118,23 @@
 
                     let scale = 1
 
-                    if (window.innerWidth * (3 / 4) >= window.innerHeight) {
-                        const h = window.innerHeight * (1 - DEFAULT_VH_MARGIN * 2)
+                    let vw = Math.min(document.documentElement.clientWidth, screen.availWidth)
+                    let vh = Math.min(document.documentElement.clientHeight, screen.availHeight)
+                    console.log(vw, vh)
+
+                    if (vw * (3 / 4) >= vh) {
+                        const h = vh * (1 - DEFAULT_VH_MARGIN * 2)
                         const w = h * (4 / 3)
-                        const my = DEFAULT_VH_MARGIN * window.innerHeight
-                        const mx = (window.innerWidth - w) / 2
+                        const my = DEFAULT_VH_MARGIN * vh
+                        const mx = (vw - w) / 2
 
                         this.style.margin = `${my}px ${mx}px`
                         scale = h / ORIGINAL_HEIGHT
                     }else{
-                        const w = window.innerWidth * (1 - DEFAULT_VH_MARGIN * 2)
+                        const w = vw * (1 - DEFAULT_VH_MARGIN * 2)
                         const h = w * (3 / 4)
-                        const mx = DEFAULT_VH_MARGIN * window.innerWidth
-                        const my = (window.innerHeight - h) / 2
+                        const mx = DEFAULT_VH_MARGIN * vw
+                        const my = (vh - h) / 2
 
                         this.style.margin = `${my}px ${mx}px`
                         scale = h / ORIGINAL_HEIGHT
@@ -158,7 +162,7 @@
 
 </script>
       <style>
-@import"https://fonts.googleapis.com/css2?family=Arvo:ital,wght@0,400;0,700;1,400;1,700&family=Inclusive+Sans&family=Mooli&family=Roboto:wght@300;400;700&display=swap";body{display:flex;flex-direction:column;align-items:center;min-height:100vh;min-width:100vw;margin:0;overflow:hidden;background-color:#000;font-family:Inclusive Sans,sans-serif;color:#272d2d;font-size:28px;transition:opacity .5s ease-in-out}h1{font-weight:700;font-size:2em;margin:.5em -.5em}h2{font-weight:400;font-size:1.5em;margin:.5em 0}h3{font-weight:400;font-size:1.2em;margin:.5em 0}h4,h5,h6{font-weight:400;font-size:1em;margin:.5em 0}table{border-collapse:collapse;width:100%}table,th,td{border:1px solid #272d2d}th,td{padding:.25em;text-align:center;font-size:.7em}th{background-color:#272d2d;color:#fff}presentation-slide{background-color:#f5f5f5;box-sizing:border-box;margin:auto;display:flex;flex-direction:column;padding:2.5vh calc(2.5vh * 4 / 3);overflow:hidden;transform-origin:center;transition:transform .5s ease-in-out}presentation-slide img{align-self:center}ul{list-style-type:disc;padding-left:2em}ul li{margin-left:1em;margin-bottom:.25em;list-style-type:disc}ul.todo{list-style-type:none;padding-left:0}ul.todo li{margin:.5em 0}ul.todo li:before{content:"□";margin-right:.5em}ul.todo li.done:before{content:"■"}presentation-slide.title{padding:5%;display:flex;flex-direction:column;justify-content:center;align-items:flex-start}presentation-slide.title h1{font-size:2em;text-align:center;margin:.5em 0}presentation-slide.title .authors{text-align:center}
+@import"https://fonts.googleapis.com/css2?family=Arvo:ital,wght@0,400;0,700;1,400;1,700&family=Inclusive+Sans&family=Mooli&family=Roboto:wght@300;400;700&display=swap";body{display:flex;flex-direction:column;align-items:center;min-height:100vh;min-width:100vw;margin:0;overflow:hidden;background-color:#000;font-family:Inclusive Sans,sans-serif;color:#272d2d;font-size:28px;transition:opacity .5s ease-in-out}h1{font-weight:700;font-size:2em;margin:.5em -.5em}h2{font-weight:400;font-size:1.5em;margin:.5em 0}h3{font-weight:400;font-size:1.2em;margin:.5em 0}h4,h5,h6{font-weight:400;font-size:1em;margin:.5em 0}table{border-collapse:collapse;width:100%}table,th,td{border:1px solid #272d2d}th,td{padding:.25em;text-align:center;font-size:.7em}th{background-color:#272d2d;color:#fff}presentation-slide{background-color:#f5f5f5;box-sizing:border-box;margin:auto;display:flex;flex-direction:column;padding:2.5vh calc(2.5vh * 4 / 3);overflow:hidden;transform-origin:center;transition:transform .5s ease-in-out;touch-action:manipulation}presentation-slide img{align-self:center}ul{list-style-type:disc;padding-left:2em}ul li{margin-left:1em;margin-bottom:.25em;list-style-type:disc}ul.todo{list-style-type:none;padding-left:0}ul.todo li{margin:.5em 0}ul.todo li:before{content:"□";margin-right:.5em}ul.todo li.done:before{content:"■"}presentation-slide.title{padding:5%;display:flex;flex-direction:column;justify-content:center;align-items:flex-start}presentation-slide.title h1{font-size:2em;text-align:center;margin:.5em 0}presentation-slide.title .authors{text-align:center}
 
 </style>
     </head>
